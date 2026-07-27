@@ -483,7 +483,7 @@
         };
 
         window.onload = function() {
-            const token = localStorage.getItem('auth_token');
+            const token = sessionStorage.getItem('auth_token');
             if (!token) {
                 showAuthOverlay();
             } else {
@@ -493,7 +493,7 @@
 
         function initializeApp() {
             // Set username badge
-            const username = localStorage.getItem('auth_username') || "Active User";
+            const username = sessionStorage.getItem('auth_username') || "Active User";
             document.getElementById('user-display').innerHTML = `<i class="fa-solid fa-user mr-1"></i> ${username}`;
             
             loadConfigBadges();
@@ -502,7 +502,7 @@
             
             // Check queue status periodically
             setInterval(() => {
-                const token = localStorage.getItem('auth_token');
+                const token = sessionStorage.getItem('auth_token');
                 if (token && documents.some(d => d.processing_status === 'PENDING' || d.processing_status === 'PROCESSING')) {
                     loadDocuments();
                     loadAnalytics();
@@ -512,7 +512,7 @@
 
         // Authenticated Fetch wrapper helper
         async function authFetch(url, options = {}) {
-            const token = localStorage.getItem('auth_token');
+            const token = sessionStorage.getItem('auth_token');
             if (!options.headers) {
                 options.headers = {};
             }
@@ -579,8 +579,8 @@
                     alert("Account created successfully! Please log in.");
                     toggleAuthMode();
                 } else {
-                    localStorage.setItem('auth_token', data.access_token);
-                    localStorage.setItem('auth_username', data.username);
+                    sessionStorage.setItem('auth_token', data.access_token);
+                    sessionStorage.setItem('auth_username', data.username);
                     hideAuthOverlay();
                     initializeApp();
                 }
@@ -590,8 +590,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_username');
+            sessionStorage.removeItem('auth_token');
+            sessionStorage.removeItem('auth_username');
             document.getElementById('auth-username').value = '';
             document.getElementById('auth-password').value = '';
             showAuthOverlay();
@@ -872,7 +872,7 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                        'Authorization': `Bearer ${sessionStorage.getItem('auth_token')}`
                     },
                     body: JSON.stringify({
                         query: query,

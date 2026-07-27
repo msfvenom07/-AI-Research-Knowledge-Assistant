@@ -30,6 +30,35 @@ logger.info("Initializing metadata database schemas...")
 try:
     Base.metadata.create_all(bind=engine)
     logger.info("Database schemas successfully loaded.")
+    
+    # Database seeding for default user accounts
+    from src.database.base import SessionLocal
+    from src.database.models import User
+    from src.database.auth import hash_password
+    import uuid
+    
+    db = SessionLocal()
+    try:
+        # Seeding a default user so that the user can always log in with the same credentials,
+        # even if the transient SQLite file resets on Render/cloud containers.
+        default_username = os.environ.get("DEFAULT_USER_USERNAME", "raj")
+        default_password = os.environ.get("DEFAULT_USER_PASSWORD", "password123")
+        
+        existing_user = db.query(User).filter(User.username == default_username).first()
+        if not existing_user:
+            logger.info(f"Seeding default user account: '{default_username}'...")
+            new_user = User(
+                user_id=str(uuid.uuid4()),
+                username=default_username,
+                password_hash=hash_password(default_password)
+            )
+            db.add(new_user)
+            db.commit()
+            logger.info(f"Successfully seeded default user '{default_username}' (pwd: '{default_password}').")
+    except Exception as seed_err:
+        logger.error(f"Failed to seed default user: {str(seed_err)}")
+    finally:
+        db.close()
 except Exception as e:
     logger.error(f"Failed to create database schemas: {str(e)}")
 
