@@ -15,5 +15,6 @@ google-generativeai
 google-genai>=0.1.0
 openai
 langchain-text-splitters
+langchain
 python-multipart
 aiofiles
