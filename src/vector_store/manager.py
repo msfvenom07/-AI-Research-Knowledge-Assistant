@@ -26,6 +26,19 @@ class EmbeddingEngine:
             self._hf_model = SentenceTransformer(self.model_name)
         return self._hf_model
 
+    def _get_mock_embeddings(self, texts: List[str]) -> List[List[float]]:
+        """Generates deterministic mock unit vectors to avoid loading heavy local PyTorch models."""
+        import hashlib
+        embeddings = []
+        for text in texts:
+            # Seed the numpy random generator with a hash of the text for determinism
+            h = int(hashlib.md5(text.encode('utf-8')).hexdigest(), 16) % (10**8)
+            rng = np.random.default_rng(h)
+            vec = rng.standard_normal(384)
+            vec = vec / np.linalg.norm(vec)
+            embeddings.append(vec.tolist())
+        return embeddings
+
     def _get_openai_client(self):
         if self._openai_client is None:
             from openai import OpenAI
@@ -38,6 +51,15 @@ class EmbeddingEngine:
             return []
             
         if self.provider == "huggingface":
+            # Prevent loading PyTorch on memory-constrained platforms like Render (512MB RAM limit)
+            disable_hf = (
+                os.environ.get("DISABLE_HF", "false").lower() == "true" or
+                os.environ.get("RENDER", "false").lower() == "true"
+            )
+            if disable_hf:
+                logger.info("SentenceTransformer is disabled (Render/Memory-limit mode). Generating mock embeddings.")
+                return self._get_mock_embeddings(texts)
+                
             model = self._get_hf_model()
             embeddings = model.encode(texts, show_progress_bar=False)
             return embeddings.tolist()
@@ -144,6 +166,15 @@ class RerankerEngine:
         
     def _load_model(self):
         if self._model is None:
+            # Prevent loading PyTorch on memory-constrained platforms like Render (512MB RAM limit)
+            disable_hf = (
+                os.environ.get("DISABLE_HF", "false").lower() == "true" or
+                os.environ.get("RENDER", "false").lower() == "true"
+            )
+            if disable_hf:
+                logger.info("CrossEncoder reranker is disabled (Render/Memory-limit mode). Using RRF order.")
+                self.is_active = False
+                return None
             try:
                 from sentence_transformers import CrossEncoder
                 logger.info(f"Loading CrossEncoder '{self.model_name}'...")
