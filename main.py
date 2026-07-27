@@ -70,8 +70,8 @@ def serve_frontend():
     return {"message": "AI Research & Knowledge Assistant Backend is running. Frontend file static/index.html is missing."}
 
 if __name__ == "__main__":
-    # Render binds services dynamically via the PORT environment variable
-    port = int(os.environ.get("PORT", 8000))
+    # Listen on port 8000 to match the Dockerfile EXPOSE 8000 instruction
+    port = 8000
     logger.info(f"Starting uvicorn server on http://0.0.0.0:{port}...")
     # Disable reload in production Docker environments to optimize CPU and startup performance
     is_reload = os.environ.get("ENV", "production") == "development"
