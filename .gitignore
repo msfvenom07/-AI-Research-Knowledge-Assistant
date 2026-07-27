@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Databases and heavy stores (Chroma database and PDFs)
+data/vector_db/
+data/raw_documents/
+data/dataset/
+*.db
+*.sqlite3
+
+# Local configuration files containing credentials
+.env
+.env.local
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Saved deep learning models and large binaries
+models/tf_classifier.h5
+models/tokenizer.pickle
+
+# Unrelated project folders and backups
+Perfect\ v1\ bs/
+Recover/
+
+# Operating system files
+.DS_Store
+Thumbs.db
