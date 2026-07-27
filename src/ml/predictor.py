@@ -3,7 +3,6 @@ import pickle
 import logging
 import numpy as np
 from typing import Optional
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 from config.settings import settings
 from src.ml.dataset_prep import CATEGORIES
 
@@ -15,7 +14,19 @@ class DocumentClassifier:
         self.tokenizer_path = tokenizer_path or settings.TOKENIZER_PATH
         self.model = None
         self.tokenizer = None
-        self.load_model_and_tokenizer()
+        
+        # On memory-constrained platforms like Render (512MB RAM limit),
+        # loading TensorFlow will trigger an Out Of Memory (OOM) crash.
+        # We check environment flags to determine if we should bypass loading the TF model.
+        self.disable_tf = (
+            os.environ.get("DISABLE_TF", "false").lower() == "true" or
+            os.environ.get("RENDER", "false").lower() == "true"
+        )
+        
+        if self.disable_tf:
+            logger.info("TensorFlow classification is disabled (Render/Memory-limit mode). Fallback keyword matching will be used.")
+        else:
+            self.load_model_and_tokenizer()
 
     def load_model_and_tokenizer(self) -> bool:
         """Loads the TensorFlow model and tokenizer from disk. Returns True if successful."""
@@ -23,13 +34,11 @@ class DocumentClassifier:
             if not os.path.exists(self.model_path) or not os.path.exists(self.tokenizer_path):
                 logger.warning(
                     f"Model or tokenizer files not found. "
-                    f"Model exists: {os.path.exists(self.model_path)}, "
-                    f"Tokenizer exists: {os.path.exists(self.tokenizer_path)}. "
                     f"Predictor will run in fallback keyword mode."
                 )
                 return False
                 
-            # Import tensorflow locally inside the function to avoid overhead during app startup if fallback is used
+            # Import tensorflow locally inside the function to avoid overhead during app startup
             import tensorflow as tf
             
             logger.info(f"Loading TensorFlow model from: {self.model_path}")
@@ -60,7 +69,14 @@ class DocumentClassifier:
             try:
                 # Preprocess text
                 sequences = self.tokenizer.texts_to_sequences([text])
-                padded = pad_sequences(sequences, maxlen=200, padding="post", truncating="post")
+                
+                # Custom sequence padding to match the model's 200 input length constraint
+                seq = sequences[0] if sequences else []
+                if len(seq) > 200:
+                    padded_seq = seq[:200]
+                else:
+                    padded_seq = seq + [0] * (200 - len(seq))
+                padded = np.array([padded_seq])
                 
                 # Run prediction
                 predictions = self.model.predict(padded, verbose=0)
