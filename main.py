@@ -70,5 +70,9 @@ def serve_frontend():
     return {"message": "AI Research & Knowledge Assistant Backend is running. Frontend file static/index.html is missing."}
 
 if __name__ == "__main__":
-    logger.info("Starting uvicorn server on http://localhost:8000...")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # Render binds services dynamically via the PORT environment variable
+    port = int(os.environ.get("PORT", 8000))
+    logger.info(f"Starting uvicorn server on http://0.0.0.0:{port}...")
+    # Disable reload in production Docker environments to optimize CPU and startup performance
+    is_reload = os.environ.get("ENV", "production") == "development"
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=is_reload)
